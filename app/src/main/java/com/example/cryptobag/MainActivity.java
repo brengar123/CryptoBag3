@@ -1,5 +1,6 @@
 package com.example.cryptobag;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.os.AsyncTask;
@@ -27,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private CoinAdapter mAdapter;
     private String TAG = "MainActivity";
     private CoinDatabase mDb;
+    private List<Coin> coins;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
 
         mAdapter = new CoinAdapter(this, new ArrayList<Coin>(), mTwoPane);
         mRecyclerView.setAdapter(mAdapter);
-        new GetCoinTask().execute();
+        //new GetCoinTask().execute();
 
         //Build DB
         mDb = Room.databaseBuilder(getApplicationContext(), CoinDatabase.class, "coin-database").build();
@@ -59,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 Log.d(TAG, "onResponse: SUCCESS(Line: 51)");
                 // create Retrofit instance & parse the retrived Json using Gson deserilizer
-                Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net").addConverterFactory(GsonConverterFactory.create()).build();
+                Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net/").addConverterFactory(GsonConverterFactory.create()).build();
 
                 // get service & call object for the request
                 CoinService service = retrofit.create(CoinService.class);
@@ -67,10 +69,9 @@ public class MainActivity extends AppCompatActivity {
 
                 // execute network request
                 Response<CoinLoreResponse> coinResponse = coinsCall.execute();
-                List<Coin> coins = coinResponse.body().getData();
+                coins = coinResponse.body().getData();
 
                 mDb.coinDao().deleteAll(mDb.coinDao().getCoins().toArray(new Coin[mDb.coinDao().getCoins().size()]));
-
                 mDb.coinDao().insertAll(coins.toArray(new Coin[coins.size()]));
 
                 return coins;
@@ -102,3 +103,4 @@ public class MainActivity extends AppCompatActivity {
     }
 
 }
+

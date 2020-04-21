@@ -32,24 +32,21 @@ public class DetailFragment extends Fragment {
     public static final String TAG = "DetailFragment";
     private Coin mCoin;
     private CoinDatabase mDb;
+    private String coinId;
 
     public DetailFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mDb = Room.databaseBuilder(getContext(), CoinDatabase.class, "coin-database").build();
-        Log.d(TAG, "Line 30");
-        if(getArguments().containsKey(ARG_ITEM_ID)) {
-            new GetCoinDBTask().execute();
-        }
+
     }
 
-    private class GetCoinDBTask extends AsyncTask<String, Void, Coin> {
+    public class GetCoinDBTask extends AsyncTask<Void, Void, Coin> {
 
         @Override
-        protected Coin doInBackground (String... ids) {
-            return mDb.coinDao().getCoin(ids[0]);
+        protected Coin doInBackground (Void... voids) {
+            return mDb.coinDao().getCoin(coinId);
         }
 
         @Override
@@ -62,7 +59,13 @@ public class DetailFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
-        updateUi();
+        mDb = Room.databaseBuilder(getActivity().getApplicationContext(), CoinDatabase.class, "coin-database").build();
+        Log.d(TAG, "Line 30");
+        if(getArguments().containsKey("COIN_ID")) {
+            Bundle arguments = getArguments();
+            coinId = arguments.getString("COIN_ID");
+            new GetCoinDBTask().execute();
+        }
         return rootView;
     }
 

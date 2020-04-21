@@ -1,6 +1,7 @@
 package com.example.cryptobag;
 
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 
@@ -20,6 +21,6 @@ public interface CoinDao {
     @Insert
     void insertAll(Coin... coins);
 
-    @Insert
+    @Delete
     void deleteAll(Coin... coins);
 }

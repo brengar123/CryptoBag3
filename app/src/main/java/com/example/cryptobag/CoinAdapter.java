@@ -26,14 +26,14 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
             Coin coin = (Coin) v.getTag();
             if(mTwoPane) {
                 Bundle arguments = new Bundle();
-                arguments.putString(DetailFragment.ARG_ITEM_ID, coin.getId());
+                arguments.putString("COIN_ID", coin.getId());
                 DetailFragment fragment = new DetailFragment();
                 fragment.setArguments(arguments);
                 mParentActivity.getSupportFragmentManager().beginTransaction().replace(R.id.detail_container, fragment).commit();
             } else {
                 Context context = v.getContext();
                 Intent intent = new Intent(context, DetailActivity.class);
-                intent.putExtra(DetailFragment.ARG_ITEM_ID, coin.getId());
+                intent.putExtra("COIN_ID", coin.getId());
                 context.startActivity(intent);
             }
         }
