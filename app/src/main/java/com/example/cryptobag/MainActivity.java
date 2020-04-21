@@ -1,12 +1,14 @@
 package com.example.cryptobag;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.os.AsyncTask;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.room.Room;
+
 import com.google.gson.Gson;
 import com.example.cryptobag.Entities.CoinLoreResponse;
 import com.example.cryptobag.Entities.Coin;
@@ -23,8 +25,8 @@ import java.io.IOException;
 public class MainActivity extends AppCompatActivity {
     private boolean mTwoPane;
     private CoinAdapter mAdapter;
-    private RecyclerView mRecyclerView;
     private String TAG = "MainActivity";
+    private CoinDatabase mDb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,37 +37,68 @@ public class MainActivity extends AppCompatActivity {
             mTwoPane = true;
         }
 
-        mRecyclerView = findViewById(R.id.rvList);
+        RecyclerView mRecyclerView = findViewById(R.id.rvList);
         mRecyclerView.setHasFixedSize(true);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         mAdapter = new CoinAdapter(this, new ArrayList<Coin>(), mTwoPane);
+        mRecyclerView.setAdapter(mAdapter);
+        new GetCoinTask().execute();
+
+        //Build DB
+        mDb = Room.databaseBuilder(getApplicationContext(), CoinDatabase.class, "coin-database").build();
+
+        new GetCoinDBTask().execute();
         new GetCoinTask().execute();
     }
-        private class GetCoinTask extends AsyncTask<Void, Void, List<Coin>> {
-            @Override
-            protected List<Coin> doInBackground(Void... voids) {
-                try {
-                    Retrofit retrofit = new Retrofit.Builder()
-                            .baseUrl("https://api.coinlore.net/")
-                            .addConverterFactory(GsonConverterFactory.create())
-                            .build();
-                    CoinService service = retrofit.create(CoinService.class);
-                    Call<CoinLoreResponse> coinsCall = service.getCoins();
 
-                    Response<CoinLoreResponse> coinResponse = coinsCall.execute();
-                    List<Coin> coins = coinResponse.body().getData();
-                    return coins;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return null;
-                }
+    private class GetCoinTask extends AsyncTask<Void, Void, List<Coin>> {
+        @Override
+        protected List<Coin> doInBackground(Void... voids) {
+            try {
+                Log.d(TAG, "onResponse: SUCCESS(Line: 51)");
+                // create Retrofit instance & parse the retrived Json using Gson deserilizer
+                Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net").addConverterFactory(GsonConverterFactory.create()).build();
+
+                // get service & call object for the request
+                CoinService service = retrofit.create(CoinService.class);
+                Call<CoinLoreResponse> coinsCall = service.getCoins();
+
+                // execute network request
+                Response<CoinLoreResponse> coinResponse = coinsCall.execute();
+                List<Coin> coins = coinResponse.body().getData();
+
+                mDb.coinDao().deleteAll(mDb.coinDao().getCoins().toArray(new Coin[mDb.coinDao().getCoins().size()]));
+
+                mDb.coinDao().insertAll(coins.toArray(new Coin[coins.size()]));
+
+                return coins;
+            } catch (IOException e) {
+                Log.d(TAG, "OnFailure: FAILURE");
+                e.printStackTrace();
+                return null;
             }
-            @Override
-            protected void onPostExecute(List<Coin> coins) {
-                mAdapter.setCoins(coins);
-                mRecyclerView.setAdapter(mAdapter);
-            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Coin> coins) {
+            mAdapter.setCoins(coins);
+        }
+
     }
+
+    private class GetCoinDBTask extends AsyncTask<Void, Void, List<Coin>> {
+
+        @Override
+        protected List<Coin> doInBackground(Void... voids) {
+            return mDb.coinDao().getCoins();
+        }
+
+        @Override
+        protected void onPostExecute (List<Coin> coins) {
+            mAdapter.setCoins(coins);
+        }
+    }
+
 }

@@ -19,6 +19,8 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import androidx.fragment.app.Fragment;
+import androidx.room.Room;
+
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -29,49 +31,31 @@ public class DetailFragment extends Fragment {
     public static final String ARG_ITEM_ID = "item_id";
     public static final String TAG = "DetailFragment";
     private Coin mCoin;
+    private CoinDatabase mDb;
 
     public DetailFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mDb = Room.databaseBuilder(getContext(), CoinDatabase.class, "coin-database").build();
         Log.d(TAG, "Line 30");
         if(getArguments().containsKey(ARG_ITEM_ID)) {
-            new GetCoinTask().execute();
+            new GetCoinDBTask().execute();
         }
     }
 
-    private class GetCoinTask extends AsyncTask<Void, Void, List<Coin>> {
-        @Override
-        protected List<Coin> doInBackground(Void... voids) {
-            try {
-                Retrofit retrofit = new Retrofit.Builder()
-                        .baseUrl("https://api.coinlore.net/")
-                        .addConverterFactory(GsonConverterFactory.create())
-                        .build();
-                CoinService service = retrofit.create(CoinService.class);
-                Call<CoinLoreResponse> coinsCall = service.getCoins();
+    private class GetCoinDBTask extends AsyncTask<String, Void, Coin> {
 
-                Response<CoinLoreResponse> coinResponse = coinsCall.execute();
-                List<Coin> coins = coinResponse.body().getData();
-                return coins;
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
+        @Override
+        protected Coin doInBackground (String... ids) {
+            return mDb.coinDao().getCoin(ids[0]);
         }
 
         @Override
-        protected void onPostExecute(List<Coin> coins) {
-            for (Coin coin : coins) {
-                if (coin.getId().equals(getArguments().getString(ARG_ITEM_ID))) {
-                    Log.d("ConsoleMsg", "YALLA");
-                    mCoin = coin;
-                    updateUi();
-                    DetailFragment.this.getActivity().setTitle(mCoin.getName());
-                    break;
-                }
-            }
+        protected void onPostExecute (Coin coin) {
+            mCoin = coin;
+            updateUi();
         }
     }
 
